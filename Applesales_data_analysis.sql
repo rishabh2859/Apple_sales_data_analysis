@@ -93,6 +93,17 @@ on s.store_id=st.store_id
 group by 1,2,3 order by 1) as yearly_data)
 select *,(current_year_revenue-previous_year_revenue)/current_year_revenue*100 as growth_percentage from cte 
 where (current_year_revenue-previous_year_revenue)/current_year_revenue*100  is not NULL order by 6 desc
+--18. What is the correlation between product price and warranty claims for products sold in the
+--last five years? (Segment based on diff price)
+select case when price<500 then 'Less Expensive'
+when price between 500 and 1000 then 'Moderately Expensive'
+else 'Highly Expensive' end as price_group,count(claim_id) as total_claims from warranty as w
+left join sales as s
+on w.sale_id=s.sale_id
+join products as p
+on s.product_id=p.product_id
+where sale_date::date>=current_date-interval '5 years'
+group by 1
 --19. Identify the store with the highest percentage of "Paid Repaired" claims in 
 --relation to total claims filed.
 select s.store_id,store_name,round(count(case when repair_status='Paid Repaired'then 1 end)::numeric/count(*)*100,2) as percent_repaired from warranty as w
@@ -103,13 +114,20 @@ on s.store_id=st.store_id
 group by 1,2 order by 3 desc limit 1
 --20.Write SQL query to calculate the monthly running total of sales for each store over the past
 --four years and compare the trends across this period?
-with cte as(select *,lag(current_month_revenue) over(partition by store_id,store_name,Years order by Month_num) as previous_month_revenue from(
+with cte as(select *,sum(current_month_revenue) over(partition by store_id,store_name,Years order by Month_num) as Running_total from(
 select s.store_id,store_name,extract(year from sale_date::date) as Years ,extract(Month from sale_date::date) as Month_num,to_char(sale_date::date,'Month') as Months,sum(quantity*price) as current_month_revenue from sales as s
 join products as p
 on s.product_id=p.product_id
 join stores as st
 on s.store_id=st.store_id
-group by 1,2,3,4,5 order by 1,4) as yearly_data)
-select *,round(current_month_revenue::numeric/previous_month_revenue,2) as growth_ratio from cte 
---20.Analyze sales trends of product over time, segmented into key time periods: from launch to 6
+where sale_date::date>=current_date-interval '4 years'
+group by 1,2,3,4,5 order by 1,4 ) as yearly_data)
+select * from cte 
+--21.Analyze sales trends of product over time, segmented into key time periods: from launch to 6
 --months, 6-12 months, 12-18 months, and beyond 18 months?
+select distinct p.product_id,product_name,launch_date,
+sum(case when launch_date::date>=sale_date::date-interval '6 months' then (quantity) else 0 end) as "6 months",
+sum(case when launch_date::date between sale_date::date-interval '12 months' and sale_date::date-interval '6 months' then (quantity) else 0 end) as "6-12 months",
+sum(case when launch_date::date<=sale_date::date-interval '18 months' then (quantity) else 0 end) as "18-months" from products as p
+join sales as s
+on p.product_id=s.product_id
