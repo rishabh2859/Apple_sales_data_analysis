@@ -91,8 +91,8 @@ on s.product_id=p.product_id
 join stores as st
 on s.store_id=st.store_id
 group by 1,2,3 order by 1) as yearly_data)
-select *,(current_year_revenue-previous_year_revenue)/current_year_revenue*100 as growth_percentage from cte 
-where (current_year_revenue-previous_year_revenue)/current_year_revenue*100  is not NULL order by 6 desc
+select *,(current_year_revenue-previous_year_revenue)/previous_year_revenue*100 as growth_percentage from cte 
+where (current_year_revenue-previous_year_revenue)/previous_year_revenue*100  is not NULL order by 6 desc
 --18. What is the correlation between product price and warranty claims for products sold in the
 --last five years? (Segment based on diff price)
 select case when price<500 then 'Less Expensive'
