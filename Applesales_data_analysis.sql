@@ -37,7 +37,7 @@ group by 1 order by 1
 select count(*) from warranty where extract(year from claim_date::date)=2020
 --10. Identify each store and best selling day based on highest qty sold
 with cte as(select store_id,to_char(sale_date::date,'Day') as days,sum(quantity)as qty_sold,
-dense_rank() over(partition by store_id order by sum(quantity)) as ranks from sales
+dense_rank() over(partition by store_id order by sum(quantity) desc) as ranks from sales
 group by 1,2)
 select * from cte where ranks=1 order by 3 desc
 --11. Identify least selling product of each country for each year based on total unit sold
